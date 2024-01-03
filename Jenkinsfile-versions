@@ -1,6 +1,12 @@
 pipeline {
   agent any
-
+   environment {
+       DOCKERHUB_USERNAME = "sha2121"
+        
+        IMAGE_TAG = "${BUILD_NUMBER}"
+        IMAGE_NAME = "${DOCKERHUB_USERNAME}"+ "/" + "${APP_NAME}"
+        REGISTRY_CREDS = 'dockerhub'
+    }
   stages {
 
     stage('git version') {
@@ -8,7 +14,14 @@ pipeline {
         sh "git version"
       }
     }
-
+   stage('docker login'){
+            steps{
+                withCredentials([usernamePassword(credentialsId: 'dockerhub', passwordVariable: 'password', usernameVariable: 'username')]) {
+    sh "docker login -u $username -p $password"
+        }
+            }
+        }
+        
     stage('maven version') {
       steps {
         sh "mvn -v"

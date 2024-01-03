@@ -1,6 +1,11 @@
 pipeline {
   agent any
-
+  environment{
+      DOCKERHUB_USERNAME = "sha2121"
+       APP_NAME = "numeric-app"
+        IMAGE_TAG = "${BUILD_NUMBER}"
+        IMAGE_NAME = "${DOCKERHUB_USERNAME}"+ "/" + "${APP_NAME}"
+  }
   stages {
       stage('code checkout'){
             steps{
@@ -11,7 +16,13 @@ pipeline {
         ])
         }
         }
-        
+        stage('docker login'){
+            steps{
+                withCredentials([usernamePassword(credentialsId: 'dockerhub', passwordVariable: 'password', usernameVariable: 'username')]) {
+                    sh "docker login -u $username -p $password"
+                }
+            }
+        }
       stage('Build Artifact') {
             steps {
               sh "mvn clean package -DskipTests=true"
@@ -28,6 +39,16 @@ pipeline {
                 jacoco execPattern: 'target/jacoco.exec'
                     }
                 }
-        }   
+        }
+        stage('Build and push to docker hub'){
+            steps{
+           dir("${WORKSPACE}") {
+          sh """
+            docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+            docker push ${IMAGE_NAME}:${IMAGE_TAG}
+            """
+        }
+            }
+        }
     }
 }
