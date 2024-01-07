@@ -46,11 +46,20 @@ pipeline {
             // Also, use the creds in configure system in jenkins under sonar section
                 withSonarQubeEnv('SonarQube') { 
                 sh "mvn clean verify sonar:sonar -Dsonar.projectKey=numeric-application -Dsonar.projectName='numeric-application' -Dsonar.host.url=http://localhost:9000"
-                   // -Dsonar.token=sqp_5819d293b1088a06797d181e465ab9c527ff59cc"
             }
             
         }
         }
+        stage('Vulnerability Scan - Docker ') {
+                 steps {
+              sh "mvn dependency-check:check"
+             }
+             post {
+               always {
+                 dependencyCheckPublisher pattern: 'target/dependency-check-report.xml'
+              }
+              }
+             }
         stage('Build and push to docker hub'){
             steps{
            dir("${WORKSPACE}") {
