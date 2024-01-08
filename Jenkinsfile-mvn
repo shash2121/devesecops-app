@@ -93,8 +93,9 @@ pipeline {
           },
           {
           // This trivy scan is for scanning the final image  
-          "Trivy Scan": 
+          "Trivy Scan": {
             sh "bash trivy-k8s-scan.sh"  
+          }
           }
         )
       }
