@@ -5,6 +5,7 @@ pipeline {
        APP_NAME = "numeric-app"
         IMAGE_TAG = "${BUILD_NUMBER}"
         IMAGE_NAME = "${DOCKERHUB_USERNAME}"+ "/" + "${APP_NAME}"
+        TRIVY_IMG = "${IMAGE_NAME}"+":"+"${IMAGE_TAG}"
   }
   stages {
       stage('code checkout'){
@@ -60,6 +61,7 @@ pipeline {
        //       }
        //       }
       //       }
+       // This stage will scan the base image in dockerfile
         stage('Trivy Scan') {
             steps {    
                 sh "bash trivy-docker-image-scan.sh"   
@@ -80,6 +82,23 @@ pipeline {
         }
             }
         }
+        stage('Vulnerability Scan - Kubernetes') {
+      steps {
+        parallel(
+          "OPA Scan": {
+            sh 'docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-k8s-security.rego k8s_deployment_service.yaml'
+          },
+          "Kubesec Scan": {
+            sh "bash kubesec-scan.sh"
+          },
+          {
+          // This trivy scan is for scanning the final image  
+          "Trivy Scan": 
+            sh "bash trivy-k8s-scan.sh"  
+          }
+        )
+      }
+    }
          stage('Kubernetes Deployment - DEV') {
       steps {
         dir("${WORKSPACE}") {
@@ -90,18 +109,7 @@ pipeline {
       }
       }
     }
-    stage('Vulnerability Scan - Kubernetes') {
-      steps {
-        parallel(
-          "OPA Scan": {
-            sh 'docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-k8s-security.rego k8s_deployment_service.yaml'
-          },
-          "Kubesec Scan": {
-            sh "bash kubesec-scan.sh"
-          }
-        )
-      }
-    }
+    
     stage('Clean Workspace') {
             steps {
                 cleanWs()
