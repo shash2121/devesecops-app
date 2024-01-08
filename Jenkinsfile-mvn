@@ -60,11 +60,16 @@ pipeline {
        //       }
        //       }
       //       }
-       stage('Vulnerability Scan - Docker') {
-      steps {    
-            sh "bash trivy-docker-image-scan.sh"   
-      }
-    }
+        stage('Vulnerability Scan - Docker') {
+            steps {    
+                sh "bash trivy-docker-image-scan.sh"   
+                }
+            }
+        stage('OPA Conftest'){
+            steps{
+                sh 'docker run --rm -v $(pwd):/project openpolicyagent/conftest test --policy opa-docker-security.rego Dockerfile'
+            }
+        }
         stage('Build and push to docker hub'){
             steps{
            dir("${WORKSPACE}") {
